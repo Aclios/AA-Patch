@@ -10,6 +10,7 @@ from pathlib import Path
 from bsdiff4 import diff, patch
 
 MAGIC = b"AAP\x00"
+VERSION = 0
 
 
 class AAPatchFile:
@@ -129,9 +130,9 @@ class AAPatch:
     _destination_files: dict[str, list[DestinationFileData]]
     entries: list[AAPatchEntry]
 
-    def __init__(self, flag: int, version: int, major: int, minor: int, micro: int):
+    def __init__(self, flag: int, major: int, minor: int, micro: int):
         self.flag = flag
-        self.version = version
+        self.version = VERSION
         self.major = major
         self.minor = minor
         self.micro = micro
@@ -243,7 +244,7 @@ class AAPatch:
             f.write_UInt8(self.minor)
             f.write_UInt16(self.micro)
             f.write_UInt32(len(filtered_dest))
-            f.write_UInt32(0)
+            f.write_UInt32(0)  # for entry count
             f.write(bytes(12))
 
             for entry in self.entries:
@@ -258,7 +259,7 @@ class AAPatch:
         f.seek(self.base_data_offset + patch_file.offset)
         return f.read(patch_file.data_size)
 
-    def patch_all(self, root_path: str, new_path: str = None, flags: list[int] = []):
+    def patch(self, root_path: str, new_path: str = None, flags: list[int] = []):
         """Patch files. If new_path is not defined, the files are patched inplace."""
         if not new_path:
             new_path = root_path
@@ -281,8 +282,8 @@ class AAPatch:
                 write_file_data(new_filepath, patched_data)
 
 
-def new(flag=0, version=0, major=1, minor=0, micro=0):
-    return AAPatch(flag, version, major, minor, micro)
+def new(flag=0, major=1, minor=0, micro=0):
+    return AAPatch(flag, major, minor, micro)
 
 
 def load(aapatch_path: str):
